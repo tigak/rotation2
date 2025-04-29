@@ -1,4 +1,4 @@
-### 1 Bacteria type with resource depletion using RK4
+### 1 Bacteria type with resource depletion using Runge-Kutta 4th
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -53,23 +53,96 @@ def rk4_bacteria_resource(mu, k_F, del_F, b0, F0, t0, tf, dt):
     return t, b, F
 
 
+def rk4_bacteria_phage(mu, k_F, del_F, b0, F0, t0, tf, dt, phi, eta, del_p, p0):
+    import numpy as np
+
+    t = np.arange(t0, tf, dt)
+    b = np.empty_like(t)
+    F = np.empty_like(t)
+    p = np.empty_like(t)
+
+    b[0] = b0
+    F[0] = F0
+    p[0] = p0
+
+    for i in range(1, len(t)):
+        # Current values
+        b0_i = b[i-1]
+        F0_i = F[i-1]
+        p0_i = p[i-1]
+
+        # --- k1 ---
+        k1_b = mu * b0_i * (F0_i / (F0_i + k_F)) - phi * p0_i * b0_i
+        k1_f = -mu * b0_i * (F0_i / (F0_i + k_F)) * del_F
+        k1_p = eta * p0_i * b0_i - del_p * p0_i
+
+        # --- k2 ---
+        b1 = b0_i + 0.5 * dt * k1_b
+        F1 = F0_i + 0.5 * dt * k1_f
+        p1 = p0_i + 0.5 * dt * k1_p
+
+        k2_b = mu * b1 * (F1 / (F1 + k_F)) - phi * p1 * b1
+        k2_f = -mu * b1 * (F1 / (F1 + k_F)) * del_F
+        k2_p = eta * p1 * b1 - del_p * p1
+
+        # --- k3 ---
+        b2 = b0_i + 0.5 * dt * k2_b
+        F2 = F0_i + 0.5 * dt * k2_f
+        p2 = p0_i + 0.5 * dt * k2_p
+
+        k3_b = mu * b2 * (F2 / (F2 + k_F)) - phi * p2 * b2
+        k3_f = -mu * b2 * (F2 / (F2 + k_F)) * del_F
+        k3_p = eta * p2 * b2 - del_p * p2
+
+        # --- k4 ---
+        b3 = b0_i + dt * k3_b
+        F3 = F0_i + dt * k3_f
+        p3 = p0_i + dt * k3_p
+
+        k4_b = mu * b3 * (F3 / (F3 + k_F)) - phi * p3 * b3
+        k4_f = -mu * b3 * (F3 / (F3 + k_F)) * del_F
+        k4_p = eta * p3 * b3 - del_p * p3
+
+        # --- Update ---
+        b[i] = b0_i + (dt/6) * (k1_b + 2*k2_b + 2*k3_b + k4_b)
+        F[i] = F0_i + (dt/6) * (k1_f + 2*k2_f + 2*k3_f + k4_f)
+        p[i] = p0_i + (dt/6) * (k1_p + 2*k2_p + 2*k3_p + k4_p)
+
+        # Prevent numerical blow-up
+        b[i] = max(b[i], 0)
+        F[i] = max(F[i], 0)
+        p[i] = max(p[i], 0)
+
+    return t, b, F, p
+
 # Parameters
 mu = 0.5 # bacterial growth rate
 k_F = 5 # half-saturation constant - The resource concentration where growth rate is half-maximal
 del_F = 0.9 # resource depletion factor - How much resource is consumed per unit bacterial growth
-b0 = 100
+b0 = 50
 F0 = 10000
 t0 = 0
-tf = 100
-dt = 0.001
+tf = 10
+dt = 0.01
+phi = 1e-10 #infectivity
+eta = 100
+del_p = 0.001
+p0 = 100
 
 # Run solver
-t, b, F = rk4_bacteria_resource(mu, k_F, del_F, b0, F0, t0, tf, dt)
+#t, b, F = rk4_bacteria_resource(mu, k_F, del_F, b0, F0, t0, tf, dt)
+t, b, F, p = rk4_bacteria_phage(mu, k_F, del_F, b0, F0, t0, tf, dt, phi, eta, del_p, p0)
 
 # Plot
 plt.plot(t, b, label='Bacteria')
 plt.plot(t, F, label='Resources')
+#plt.plot(t, p, label='Phage')
+#plt.yscale('log')
+#plt.ylim(0, 10000)
+#plt.xlim(t0, tf)
 plt.xlabel('Time')
 plt.ylabel('Concentration')
 plt.legend()
 plt.show()
+
+#Resources are dropping almost immediately to 0?
