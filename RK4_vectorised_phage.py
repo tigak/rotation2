@@ -33,7 +33,7 @@ def rk4_system(f, x0, t, args=(), threshold=1e-6, extinction_stop=True):
 
         # Prevent negatives
         x[i] = np.maximum(x[i], 1e-8)
-
+        print(x[i])
         # Stop if phage or bacteria extinct
         if extinction_stop and (x[i][0] < threshold or x[i][2] < threshold):
             x[i:] = x[i]  # hold the final value constant to match output shape
@@ -44,16 +44,21 @@ def rk4_system(f, x0, t, args=(), threshold=1e-6, extinction_stop=True):
 
 # Parameters
 mu = 0.5
-k_F = 5
-del_F = 0.9
-phi = 1e-8
-eta = 100
+F0=1
+k_F = 0.1*F0
+del_F = 0.0200
+phi = 1e-8 #
+eta = 100/1800 # 100 phage per bacteria per half an hour 
 delta = 0.001
+max_time_hours = 48
+# Convert hours to seconds
+max_time_seconds = max_time_hours * 3600
+max_time_seconds= 10
 
 # Initial conditions
-x0 = np.array([50, 10000, 10])  # [b, F, p]
-dt = 0.00001  
-t = np.linspace(0, 100, int(100 / dt))
+x0 = np.array([50, F0, 10])  # [b, F, p]
+dt = 0.01  
+t = np.linspace(0, max_time_seconds, int(max_time_seconds / dt) + 1)  # time points
 
 # Integrate
 X = rk4_system(f, x0, t, args=(mu, k_F, del_F, phi, eta, delta))
